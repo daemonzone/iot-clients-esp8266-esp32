@@ -4,7 +4,7 @@
 
 This project combines firmware and software for microcontrollers, backend services, and monitoring tools.
 
-### 🧠 Wemos / ESP8266 / ESP32 Clients
+### 🧠 Wemos / esp8266 / esp32 Clients
  - For IoT nodes based on **ESP8266 / ESP32** microcontrollers (i.e Wemos D1 mini)
  - Each device has its own unique identifier
  - Each device announces itself on a MQTT queue, being identified by the monitoring service.
@@ -75,43 +75,46 @@ A **React Web Interface** to:
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/daemonzone/iot-monitor-service.git
-   cd iot-monitor-service
+   git clone https://github.com/daemonzone/iot-clients-esp8266-esp32.git
+   cd iot-clients-esp8266-esp32
 
-2. Install **iot-monitor-service** dependencies
+2. Open the **iot-clients-esp8266-esp32** sketch on **Arduino IDE**
 
-   _**Requires node >= 20_
-   ```
-   cd iot-monitor-service
-   npm install
-   ```
 
 3. Configure the environment
-   Copy .env.example to .env and fill in with Database and MQTT parameters:
+
+   Configure the connection parameters (WiFi, MQTT) within the sketch code at lines 11-18
 
    ```
-   MQTT_BROKER_URL=mqtt://localhost
-   DATABASE_URL=postgres://user:password@localhost/iot
-   ```
-
-4. Run the iot-monitor-service
-   ```
-   npm start
-   ```
-
-   ### 🚀 Console output
-
-   ```
-   > monitoring-server@1.0.0 start
-   > node monitor.js
+   // WiFi credentials
+   const char* ssid = "<WIFI NAME>";
+   const char* password = "<WIFI PASSWORD>";
    
-   Connected to MQTT broker
-   📡 Loaded 2 active devices.
-   Subscribed to devices/wemos-46fea4/status
-   Subscribed to devices/wemos-52b44b/status
-   📡 Status from wemos-52b44b: {"id":"wemos-52b44b","status":"up","led":"ON","ip":"10.94.176.24","uptime":163,"timestamp":"2025-11-06 00:07:01"}
-   Subscribed to devices/+/register
-   ✅ Status stored for wemos-52b44b at 2025-11-06 00:07:01
+   // MQTT Cluster info
+   const char* mqtt_server = "<YOUR_MQTT_URL>";
+   const char* mqtt_user = "<YOUR_MQTT_USER>";
+   const char* mqtt_pass = "<YOUR_MQTT_PASS>";
+   ```
+
+   Set Device Name at line: 164
+   ```
+   reg["model"] = "Wemos D1 Mini";
+   ```
+
+4. Flash the compiled sketch to the device (i.e. Wemos D1 mini)
+
+   ### 🚀 Console output (with terminal set to 115200 baud)
+
+   ```
+   ...
+   WiFi connected
+   IP address: 10.94.176.231
+   Waiting for NTP time sync: .
+   CET Thu Nov  6 19:31:09 2025
+   Attempting MQTT connection...connected
+   Connected to devices/wemos-46fea4/cmd
+   [wemos-46fea4] Registration sent successfully
+   [wemos-46fea4] Up status sent
    ...
    ```
 ---
