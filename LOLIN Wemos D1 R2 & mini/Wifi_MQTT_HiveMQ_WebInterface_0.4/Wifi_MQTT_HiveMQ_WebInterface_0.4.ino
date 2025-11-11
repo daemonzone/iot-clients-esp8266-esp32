@@ -18,6 +18,12 @@ const char* mqtt_user = "<YOUR_MQTT_USER>";
 const char* mqtt_pass = "<YOUR_MQTT_PASS>";
 const int reconnect_delay = 5000;
 const int status_delay = 60000;
+
+// Sensors
+// Array of sensor keys in the header
+const char* sensorKeys[] = {"temperature", "humidity", "led"};
+const size_t sensorCount = sizeof(sensorKeys) / sizeof(sensorKeys[0]);
+
 boolean led_status = false;  // ON
 char registerTopic[64];
 String cmdTopic;
@@ -164,6 +170,13 @@ void publishRegistration() {
   reg["model"] = "Wemos D1 Mini";
   reg["id"]    = deviceId;
   reg["ip"]    = WiFi.localIP().toString();
+
+  // Nested JSON array from global array
+  JsonArray sensors = reg.createNestedArray("sensors");
+  for (size_t i = 0; i < sensorCount; i++) {
+    sensors.add(sensorKeys[i]);
+  }
+
   char buf[256];
   serializeJson(reg, buf);
 
