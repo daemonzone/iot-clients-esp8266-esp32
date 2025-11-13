@@ -7,6 +7,8 @@
 #include <LittleFS.h>
 #include <CertStoreBearSSL.h>
 #include <ArduinoJson.h>
+#include <Wire.h>
+#include "Adafruit_SHT31.h"
 
 // WiFi credentials
 const char* ssid = "<YOUR_SSID>";
@@ -20,9 +22,9 @@ const int reconnect_delay = 5000;
 const int status_delay = 60000;
 
 // Sensors
-// Array of sensor keys in the header
 const char* sensorKeys[] = {"temperature", "humidity", "led"};
 const size_t sensorCount = sizeof(sensorKeys) / sizeof(sensorKeys[0]);
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 boolean led_status = false;  // ON
 char registerTopic[64];
@@ -113,24 +115,41 @@ String getChipId() {
 }
 
 void publishStatus() {
-    // Create alive JSON status
-    StaticJsonDocument<200> status;
-    status["id"] = deviceId;
-    status["status"] = "up";
-    status["led"] = led_status ? "OFF" : "ON";
-    status["ip"] = WiFi.localIP().toString();
-    status["uptime"] = getAliveSeconds();       // seconds since boot
-    status["timestamp"] = currentTimestamp();
+  // Create alive JSON status
+  StaticJsonDocument<500> status;
+  status["id"] = deviceId;
+  status["status"] = "up";
+  status["ip"] = WiFi.localIP().toString();
+  status["uptime"] = getAliveSeconds();       // seconds since boot
+  status["timestamp"] = currentTimestamp();
 
-    char buf[256];
-    serializeJson(status, buf);
+  JsonObject sensorsData = status.createNestedObject("sensors_data");
+  
+  for (size_t i = 0; i < sensorCount; i++) {
+    const char* key = sensorKeys[i];
 
-    // Publish to device-specific status topic
-    if (client.publish(statusTopic.c_str(), buf, false)) { // retained
-      Serial.printf("[%s] Up status sent\n", deviceId.c_str());
-    } else {
-      Serial.printf("[%s] Failed to send up status\n", deviceId.c_str());
-    }
+    if (strcmp(key, "temperature") == 0) {
+      float temperature = sht31.readTemperature();
+      sensorsData[key] = isnan(temperature) ? 0 : temperature;
+    } 
+    else if (strcmp(key, "humidity") == 0) {
+      float humidity = sht31.readHumidity();
+      sensorsData[key] = isnan(humidity) ? 0 : humidity;
+    } 
+    else if (strcmp(key, "led") == 0) {
+      sensorsData[key] = led_status;
+    }  
+  }
+
+  char buf[512];
+  serializeJson(status, buf);
+
+  // Publish to device-specific status topic
+  if (client.publish(statusTopic.c_str(), buf, false)) { // retained
+    Serial.printf("[%s] Up status sent\n", deviceId.c_str());
+  } else {
+    Serial.printf("[%s] Failed to send up status\n", deviceId.c_str());
+  }
 }
 
 unsigned long getAliveSeconds() {
@@ -267,6 +286,14 @@ void reconnect() {
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  Serial.println("Initializing SHT30 sensor");
+
+  if (!sht31.begin(0x45)) {
+    Serial.println("Couldn't find any SHT30/SHT31 sensor");
+  } else {
+    Serial.println("SHT30/SHT31 sensor initialized");
+  }
 
   deviceId = "wemos-" + getChipId();
   cmdTopic = "devices/" + deviceId + "/cmd";
